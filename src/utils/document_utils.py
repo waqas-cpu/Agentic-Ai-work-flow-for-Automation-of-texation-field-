@@ -115,7 +115,11 @@ def sanitize_filename(filename: str) -> str:
     # Limit length
     max_length = 255
     if len(sanitized) > max_length:
-        name, ext = sanitized.rsplit('.', 1) if '.' in sanitized else (sanitized, '')
-        sanitized = name[:max_length-len(ext)-1] + '.' + ext if ext else name[:max_length]
+        if '.' in sanitized:
+            name, ext = sanitized.rsplit('.', 1)
+            available_length = max_length - len(ext) - 1  # -1 for the dot
+            sanitized = name[:available_length] + '.' + ext
+        else:
+            sanitized = sanitized[:max_length]
     
     return sanitized

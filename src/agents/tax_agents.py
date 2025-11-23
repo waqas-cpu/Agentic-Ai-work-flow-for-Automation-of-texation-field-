@@ -129,11 +129,18 @@ class DocumentAnalyzerAgent(BaseAgent):
             }
     
     def _extract_fields(self, content: str) -> Dict[str, Any]:
-        """Extract structured fields from document"""
+        """
+        Extract structured fields from document
+        
+        NOTE: This is a mock implementation for demonstration purposes.
+        In production, use NER (Named Entity Recognition) or structured extraction
+        libraries like spaCy, transformers, or document-specific parsers.
+        """
         # Mock extraction - in production use NER or structured extraction
         return {
             "extracted": True,
-            "field_count": len(content.split()) if content else 0
+            "field_count": len(content.split()) if content else 0,
+            "note": "Mock implementation - replace with actual extraction in production"
         }
     
     def get_capabilities(self) -> List[str]:

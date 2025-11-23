@@ -96,7 +96,7 @@ class Config:
         required_keys = ["vector_store_type", "max_parallel_agents"]
         
         for key in required_keys:
-            if key not in self._config or not self._config[key]:
+            if key not in self._config or self._config[key] is None:
                 return False
         
         return True

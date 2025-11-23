@@ -178,11 +178,16 @@ async def main():
         print(f"\n📚 Loading documents from {args.docs_dir}...")
         docs = load_documents_from_directory(args.docs_dir)
         if docs:
-            rag_system.ingest_documents(
-                documents=[d['content'] for d in docs],
-                metadata=[{"name": d['name']} for d in docs]
-            )
-            print(f"✓ Ingested {len(docs)} documents")
+            # Filter out documents with empty content
+            valid_docs = [d for d in docs if d.get('content')]
+            if valid_docs:
+                rag_system.ingest_documents(
+                    documents=[d['content'] for d in valid_docs],
+                    metadata=[{"name": d['name']} for d in valid_docs]
+                )
+                print(f"✓ Ingested {len(valid_docs)} documents")
+            else:
+                print("⚠ No valid documents found")
     else:
         # Load sample documents
         print("\n📚 Loading sample tax documents...")
