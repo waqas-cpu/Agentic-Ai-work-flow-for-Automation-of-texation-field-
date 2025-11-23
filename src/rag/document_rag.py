@@ -4,7 +4,7 @@ Handles document ingestion, vectorization, and retrieval
 """
 
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 import logging
 
@@ -15,7 +15,12 @@ try:
     from langchain.docstore.document import Document
 except ImportError:
     # Graceful fallback for demonstration
-    pass
+    Document = None
+    RecursiveCharacterTextSplitter = None
+    OpenAIEmbeddings = None
+    HuggingFaceEmbeddings = None
+    Chroma = None
+    FAISS = None
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +56,15 @@ class TaxDocumentRAG:
         self.chunk_overlap = chunk_overlap
         
         # Initialize text splitter
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            length_function=len,
-            separators=["\n\n", "\n", " ", ""]
-        )
+        if RecursiveCharacterTextSplitter is not None:
+            self.text_splitter = RecursiveCharacterTextSplitter(
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+                length_function=len,
+                separators=["\n\n", "\n", " ", ""]
+            )
+        else:
+            self.text_splitter = None
         
         # Initialize embeddings
         self.embeddings = self._initialize_embeddings(embedding_model)
@@ -69,9 +77,9 @@ class TaxDocumentRAG:
     def _initialize_embeddings(self, model_type: str):
         """Initialize embedding model"""
         try:
-            if model_type == "openai":
+            if model_type == "openai" and OpenAIEmbeddings is not None:
                 return OpenAIEmbeddings()
-            elif model_type == "huggingface":
+            elif model_type == "huggingface" and HuggingFaceEmbeddings is not None:
                 return HuggingFaceEmbeddings(
                     model_name="sentence-transformers/all-MiniLM-L6-v2"
                 )
@@ -85,7 +93,7 @@ class TaxDocumentRAG:
     def _initialize_vector_store(self, store_type: str):
         """Initialize vector store"""
         try:
-            if store_type == "chroma":
+            if store_type == "chroma" and Chroma is not None:
                 return Chroma(
                     embedding_function=self.embeddings,
                     persist_directory=str(self.vector_store_path)
@@ -117,6 +125,10 @@ class TaxDocumentRAG:
             logger.warning("No documents provided for ingestion")
             return 0
         
+        if not self.text_splitter:
+            logger.warning("Text splitter not initialized, ingesting without splitting")
+            return 0
+        
         all_chunks = []
         
         for idx, doc_text in enumerate(documents):
@@ -131,9 +143,16 @@ class TaxDocumentRAG:
                 chunk_metadata = doc_metadata.copy()
                 chunk_metadata['chunk_index'] = chunk_idx
                 
-                all_chunks.append(
-                    Document(page_content=chunk, metadata=chunk_metadata)
-                )
+                if Document is not None:
+                    all_chunks.append(
+                        Document(page_content=chunk, metadata=chunk_metadata)
+                    )
+                else:
+                    # Fallback when Document class is not available
+                    all_chunks.append({
+                        'page_content': chunk,
+                        'metadata': chunk_metadata
+                    })
         
         # Add to vector store
         if self.vector_store:
@@ -198,7 +217,7 @@ class TaxDocumentRAG:
         self,
         query: str,
         k: int = 5
-    ) -> List[tuple[Document, float]]:
+    ) -> List[Tuple[Any, float]]:
         """
         Retrieve documents with similarity scores
         

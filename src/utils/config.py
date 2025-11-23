@@ -5,7 +5,14 @@ Configuration management utilities
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
-from dotenv import load_dotenv
+
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    # Fallback when python-dotenv is not installed
+    def load_dotenv(dotenv_path=None):
+        """Mock load_dotenv function"""
+        pass
 
 
 class Config:

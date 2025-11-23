@@ -212,7 +212,7 @@ class ComplianceCheckerAgent(BaseAgent):
         ]
 
 
-class DeductionOptimizer Agent(BaseAgent):
+class DeductionOptimizerAgent(BaseAgent):
     """
     Agent specialized in optimizing tax deductions
     Identifies opportunities for maximizing deductions
