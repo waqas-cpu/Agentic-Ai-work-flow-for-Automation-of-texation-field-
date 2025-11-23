@@ -1,101 +1,113 @@
-# Agentic-Ai-work-flow-for-Automation-of-texation-field-
-In this project we use Agentic Ai for Automation of Tax process 
-from fpdf import FPDF
+import os
+from crewai import Agent, Task, Crew, Process
+from langchain_openai import ChatOpenAI
 
-class PDF(FPDF):
-    def header(self):
-        # Font for the header
-        self.set_font('Arial', 'B', 16)
-        # Name
-        self.cell(0, 10, 'Waqas Afzal', 0, 1, 'C')
-        # Contact Info
-        self.set_font('Arial', '', 10)
-        self.cell(0, 5, 'AI Engineer Intern | Agentic AI & LLMs', 0, 1, 'C')
-        self.cell(0, 5, 'Lahore, Pakistan | sialwaqas45@gmail.com', 0, 1, 'C')
-        self.cell(0, 5, 'GitHub: github.com/waqas-cpu | LinkedIn: Waqas sial', 0, 1, 'C')
-        self.ln(10)
+# =============================================================================
+# 1. CONFIGURATION
+# =============================================================================
+# Replace with your API Key or use os.getenv("OPENAI_API_KEY")
+os.environ["OPENAI_API_KEY"] = "YOUR_OPENAI_API_KEY_HERE"
 
-    def section_title(self, title):
-        self.set_font('Arial', 'B', 12)
-        self.set_fill_color(200, 220, 255) # Light blue background
-        self.cell(0, 6, title, 0, 1, 'L', 1)
-        self.ln(2)
+# We use a capable model (GPT-4) for complex reasoning, or GPT-3.5 for speed
+llm = ChatOpenAI(model="gpt-4", temperature=0.2)
 
-    def section_body(self, body):
-        self.set_font('Arial', '', 10)
-        self.multi_cell(0, 5, body)
-        self.ln(3)
-    
-    def project_entry(self, name, tech, desc):
-        self.set_font('Arial', 'B', 10)
-        self.cell(0, 5, f"{name} | {tech}", 0, 1)
-        self.set_font('Arial', '', 10)
-        self.multi_cell(0, 5, desc)
-        self.ln(3)
+# =============================================================================
+# 2. AGENT DEFINITIONS (The Team)
+# =============================================================================
 
-# Create PDF object
-pdf = PDF()
-pdf.add_page()
-pdf.set_auto_page_break(auto=True, margin=15)
-
-# --- PROFESSIONAL SUMMARY ---
-pdf.section_title('PROFESSIONAL SUMMARY')
-pdf.section_body(
-    "Aspiring AI Engineer with a specialized focus on Agentic Workflows and LLM Orchestration. "
-    "Passionate about moving beyond static chatbots to building autonomous systems that execute actions. "
-    "Proficient in Python, LangChain, and CrewAI, with a portfolio of agentic projects on GitHub (waqas-cpu). "
-    "Seeking an internship to apply multi-agent architecture knowledge in a production environment."
+# Agent 1: Gathers raw financial data
+data_collector = Agent(
+    role='Senior Financial Data Collector',
+    goal='Extract accurate income and expense data from raw transaction logs',
+    backstory="""You are an expert at sifting through messy bank logs and 
+    invoices. You categorize every transaction precisely as 'Income', 
+    'Deductible Expense', or 'Non-Deductible'.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=llm
 )
 
-# --- TECHNICAL SKILLS ---
-pdf.section_title('TECHNICAL SKILLS')
-pdf.section_body(
-    "- Core AI: Agentic Workflows, RAG, Prompt Engineering, Tool Calling/Function Calling.\n"
-    "- Languages: Python, SQL, JavaScript.\n"
-    "- Frameworks: LangChain, CrewAI, AutoGen, PyTorch, LlamaIndex.\n"
-    "- Tools: OpenAI API, Ollama (Local LLMs), Pinecone/ChromaDB, Docker, Git."
+# Agent 2: Calculates the Tax
+tax_analyst = Agent(
+    role='Chief Tax Calculator',
+    goal='Calculate the final tax liability based on net income and current tax brackets',
+    backstory="""You are a precise mathematician. You take categorized data 
+    and apply the following tax rules: 
+    - 0% tax on first $10,000 
+    - 10% tax on income between $10,001 and $50,000 
+    - 20% tax on anything above $50,000. 
+    You strictly follow these brackets.""",
+    verbose=True,
+    allow_delegation=False,
+    llm=llm
 )
 
-# --- PROJECTS ---
-pdf.section_title('KEY PROJECTS (GitHub: waqas-cpu)')
-
-pdf.project_entry(
-    "Autonomous Research Agent", 
-    "Python, CrewAI, SerperDev API",
-    "- Engineered a multi-agent system where a 'Researcher' agent scrapes the web and a 'Writer' agent compiles summaries.\n"
-    "- Implemented autonomous delegation logic to handle complex queries without human intervention."
+# Agent 3: Audits the process (Quality Assurance)
+compliance_auditor = Agent(
+    role='IRS Compliance Auditor',
+    goal='Verify that the calculated tax matches the data and report any anomalies',
+    backstory="""You are a suspicious auditor. You double-check the work of the 
+    Tax Calculator. If the math looks wrong or deductions seem too high (over 
+    50% of income), you flag it as 'High Risk'. Otherwise, you mark it 'Approved'.""",
+    verbose=True,
+    allow_delegation=True, # Can ask the others questions if needed
+    llm=llm
 )
 
-pdf.project_entry(
-    "RAG Chatbot with Tool Use", 
-    "LangChain, OpenAI, ChromaDB",
-    "- Built a document-interaction system allowing users to query PDFs.\n"
-    "- Integrated Function Calling enabling the LLM to switch between text retrieval and using a calculator tool for math queries."
+# =============================================================================
+# 3. TASK DEFINITIONS (The Work)
+# =============================================================================
+
+# Simulated raw data input
+client_data = """
+    Transaction Log for User ID 998:
+    - Jan 1: Payment received from Client A: +$40,000
+    - Feb 4: Payment received from Client B: +$25,000
+    - Mar 10: Office Supplies purchase: -$5,000
+    - Apr 15: Client Dinner (50% deductible): -$2,000
+    - May 20: Server Hosting Costs: -$3,000
+"""
+
+task_collect_data = Task(
+    description=f"""Analyze the following client data: {client_data}. 
+    Create a summary report listing Total Income and Total Deductible Expenses.""",
+    agent=data_collector,
+    expected_output="A clear summary text with Total Income and Total Expenses."
 )
 
-pdf.project_entry(
-    "Local LLM Optimization", 
-    "Ollama, Llama 3, Linux",
-    "- Deployed and optimized open-source LLMs locally for privacy-preserving inference.\n"
-    "- Fine-tuned system prompts to improve reasoning capabilities of 7B parameter models."
+task_calculate_tax = Task(
+    description="""Using the summary provided by the Data Collector, calculate 
+    the taxable income (Income - Expenses) and then calculate the exact tax 
+    owed based on the tax brackets in your backstory.""",
+    agent=tax_analyst,
+    expected_output="A step-by-step calculation showing the final Tax Bill.",
+    context=[task_collect_data] # Waits for collector to finish
 )
 
-# --- EDUCATION ---
-pdf.section_title('EDUCATION')
-pdf.section_body(
-    "BS Computer Science / Artificial Intelligence\n"
-    "Lahore, Pakistan\n"
-    "Focus: Data Structures, Algorithms, Artificial Intelligence, NLP."
+task_audit = Task(
+    description="""Review the calculated tax bill. Check if the deductions look 
+    reasonable. Generate a final 'Audit Certificate' stating if the return is 
+    Approved or Flagged for Review.""",
+    agent=compliance_auditor,
+    expected_output="A formal Audit Certificate text.",
+    context=[task_calculate_tax] # Waits for calculator to finish
 )
 
-# --- CERTIFICATIONS ---
-pdf.section_title('CERTIFICATIONS')
-pdf.section_body(
-    "- Generative AI with Large Language Models (DeepLearning.AI)\n"
-    "- Python for Data Science"
+# =============================================================================
+# 4. CREW EXECUTION (The Automation)
+# =============================================================================
+
+tax_crew = Crew(
+    agents=[data_collector, tax_analyst, compliance_auditor],
+    tasks=[task_collect_data, task_calculate_tax, task_audit],
+    process=Process.sequential, # Changes to 'hierarchical' or 'parallel' depending on complexity
+    verbose=True
 )
 
-# Output the file
-pdf.output('Waqas_Afzal_Agentic_AI_CV.pdf')
+print("### STARTING TAXATION AUTOMATION CREW ###")
+result = tax_crew.kickoff()
 
-print("SUCCESS: Your PDF 'Waqas_Afzal_Agentic_AI_CV.pdf' has been generated!")
+print("\n\n########################")
+print("## FINAL AUDIT REPORT ##")
+print("########################\n")
+print(result)
